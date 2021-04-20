@@ -911,6 +911,12 @@ bool AngoraLLVMPass::runOnModule(Module &M) {
 
   if (is_bc)
     OKF("Max constraint id is %d", CidCounter);
+
+  std::ofstream func;
+  func.open("FRIEND_func_cmp_id_info" , std::ofstream::out | std::ofstream::trunc);
+  func << CidCounter;
+  func.close();
+
   return true;
 }
 

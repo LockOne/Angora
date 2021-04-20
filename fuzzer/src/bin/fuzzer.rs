@@ -79,6 +79,10 @@ fn main() {
              .short("E")
              .long("disable_exploitation")
              .help("Disable the fuzzer to mutate sensitive bytes to exploit bugs"))
+        .arg(Arg::with_name("cmp_id_info_text_file")
+             .short("D")
+             .takes_value(true)
+             .required(true))
        .get_matches();
 
     fuzz_main(
@@ -94,5 +98,6 @@ fn main() {
         matches.occurrences_of("sync_afl") > 0,
         matches.occurrences_of("disable_afl_mutation") == 0,
         matches.occurrences_of("disable_exploitation") == 0,
+        matches.value_of("cmp_id_info_text_file").unwrap(),
     );
 }

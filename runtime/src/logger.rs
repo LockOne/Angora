@@ -57,9 +57,9 @@ impl Logger {
     }
 
     pub fn save(&mut self, mut cond: CondStmtBase) {
-        if cond.lb1 == 0 && cond.lb2 == 0 {
-            return;
-        }
+        //if cond.lb1 == 0 && cond.lb2 == 0 {
+        //    return;
+        //}
 
         let mut order = 0;
 

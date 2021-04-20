@@ -13,7 +13,7 @@ use std::{
     process::{Command, Stdio},
     sync::{
         atomic::{compiler_fence, Ordering},
-        Arc, RwLock,
+        Arc, RwLock, Mutex,
     },
     time,
 };
@@ -33,6 +33,7 @@ pub struct Executor {
     pub has_new_path: bool,
     pub global_stats: Arc<RwLock<stats::ChartStats>>,
     pub local_stats: stats::LocalStats,
+    pub branch_cov_list : Arc<Mutex<Box<[u32]>>>,
 }
 
 impl Executor {
@@ -41,6 +42,7 @@ impl Executor {
         global_branches: Arc<branches::GlobalBranches>,
         depot: Arc<depot::Depot>,
         global_stats: Arc<RwLock<stats::ChartStats>>,
+        branch_cov_list : Arc<Mutex<Box<[u32]>>>,
     ) -> Self {
         // ** Share Memory **
         let branches = branches::Branches::new(global_branches);
@@ -95,6 +97,7 @@ impl Executor {
             has_new_path: false,
             global_stats,
             local_stats: Default::default(),
+            branch_cov_list,
         }
     }
 
@@ -221,6 +224,41 @@ impl Executor {
         skip
     }
 
+    fn update_branch_cov(&mut self, cond_stmts : &Vec<cond_stmt::CondStmt>) {
+        let mut new_cov = 0;
+
+        for stmt in cond_stmts {
+            //stmt.base.condition
+            //False -> 0, True -> 1, both -> 2 (never)
+            let mut b = match self.branch_cov_list.lock() {
+                Ok(b) => b,
+                Err(p) => p.into_inner(),
+            };
+
+            //False -> 1, True -> 2, both -> 3
+            let condition = stmt.base.condition + 1;
+            let precondition : u32 = b[stmt.base.cmpid as usize];
+            
+            if precondition == 3 {
+                continue;
+            }
+
+            let postcondition = precondition | condition;
+
+            if precondition == 0 && postcondition != 3 {
+                new_cov += 1;
+            } else if precondition == 0 && postcondition == 3 {
+                new_cov += 2;
+            } else if precondition != 3 && postcondition == 3 {
+                new_cov += 1;
+            }
+
+            b[stmt.base.cmpid as usize] = postcondition;
+        }
+
+        self.local_stats.cmp_cov += new_cov;
+    }
+
     fn do_if_has_new(&mut self, buf: &Vec<u8>, status: StatusType, _explored: bool, cmpid: u32) {
         // new edge: one byte in bitmap
         let (has_new_path, has_new_edge, edge_num) = self.branches.has_new(status);
@@ -248,6 +286,7 @@ impl Executor {
                 if !crash_or_tmout {
                     let cond_stmts = self.track(id, buf, speed);
                     if cond_stmts.len() > 0 {
+                        self.update_branch_cov(&cond_stmts);
                         self.depot.add_entries(cond_stmts);
                         if self.cmd.enable_afl {
                             self.depot

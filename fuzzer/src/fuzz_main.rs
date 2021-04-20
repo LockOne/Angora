@@ -8,7 +8,7 @@ use std::{
     path::{Path, PathBuf},
     sync::{
         atomic::{AtomicBool, AtomicUsize, Ordering},
-        Arc, RwLock,
+        Arc, RwLock, Mutex,
     },
     thread, time,
 };
@@ -31,6 +31,7 @@ pub fn fuzz_main(
     sync_afl: bool,
     enable_afl: bool,
     enable_exploitation: bool,
+    cmp_id_file_path: &str,
 ) {
     pretty_env_logger::init();
 
@@ -48,10 +49,17 @@ pub fn fuzz_main(
     );
     info!("{:?}", command_option);
 
+    let num_cmp = fs::read_to_string(cmp_id_file_path).expect("Can not read cmp info file");
+    let num_cmp = num_cmp.parse::<usize>().unwrap_or(0);
+
+    info!("# of cmp : {:?}", num_cmp);
+
     check_dep::check_dep(in_dir, out_dir, &command_option);
 
     let depot = Arc::new(depot::Depot::new(seeds_dir, &angora_out_dir));
     info!("{:?}", depot.dirs);
+
+    let branch_cov_list = Arc::new(Mutex::new(vec![0u32; num_cmp].into_boxed_slice()));
 
     let stats = Arc::new(RwLock::new(stats::ChartStats::new()));
     let global_branches = Arc::new(branches::GlobalBranches::new());
@@ -64,6 +72,7 @@ pub fn fuzz_main(
         global_branches.clone(),
         depot.clone(),
         stats.clone(),
+        branch_cov_list.clone(),
     );
 
     depot::sync_depot(&mut executor, running.clone(), &depot.dirs.seeds_dir);
@@ -85,6 +94,7 @@ pub fn fuzz_main(
         &global_branches,
         &depot,
         &stats,
+        &branch_cov_list,
     );
 
     let log_file = match fs::File::create(angora_out_dir.join(defs::ANGORA_LOG_FILE)) {
@@ -182,6 +192,7 @@ fn init_cpus_and_run_fuzzing_threads(
     global_branches: &Arc<branches::GlobalBranches>,
     depot: &Arc<depot::Depot>,
     stats: &Arc<RwLock<stats::ChartStats>>,
+    branch_cov_list : &Arc<Mutex<Box<[u32]>>>,
 ) -> (Vec<thread::JoinHandle<()>>, Arc<AtomicUsize>) {
     let child_count = Arc::new(AtomicUsize::new(0));
     let mut handlers = vec![];
@@ -201,12 +212,13 @@ fn init_cpus_and_run_fuzzing_threads(
         let b = global_branches.clone();
         let s = stats.clone();
         let cid = if bind_cpus { free_cpus[thread_id] } else { 0 };
+        let b2 = branch_cov_list.clone();
         let handler = thread::spawn(move || {
             c.fetch_add(1, Ordering::SeqCst);
             if bind_cpus {
                 bind_cpu::bind_thread_to_cpu_core(cid);
             }
-            fuzz_loop::fuzz_loop(r, cmd, d, b, s);
+            fuzz_loop::fuzz_loop(r, cmd, d, b, s, b2);
         });
         handlers.push(handler);
     }

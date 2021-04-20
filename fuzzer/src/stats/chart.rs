@@ -21,6 +21,7 @@ pub struct ChartStats {
     num_inputs: Counter,
     num_hangs: Counter,
     num_crashes: Counter,
+    cmp_cov: u32,
 
     fuzz: FuzzStats,
     search: SearchStats,
@@ -52,6 +53,8 @@ impl ChartStats {
         self.num_hangs += local.num_hangs;
         st.num_crashes += local.num_crashes;
         self.num_crashes += local.num_crashes;
+
+        self.cmp_cov += local.cmp_cov;
 
         //local.clear();
     }
@@ -106,12 +109,13 @@ impl ChartStats {
 
     pub fn mini_log(&self) -> String {
         format!(
-            "{}, {}, {}, {}, {}",
+            "{}, {}, {}, {}, {}, {}",
             self.init_time.0.elapsed().as_secs(),
             self.density.0,
             self.num_inputs.0,
             self.num_hangs.0,
-            self.num_crashes.0
+            self.num_crashes.0,
+            self.cmp_cov,
         )
     }
 

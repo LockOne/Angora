@@ -117,7 +117,7 @@ impl Depot {
         };
 
         for mut cond in conds {
-            if cond.is_desirable {
+            if cond.base.lb1 != 0 && cond.base.lb2 != 0 && cond.is_desirable {
                 if let Some(v) = q.get_mut(&cond) {
                     if !v.0.is_done() {
                         // If existed one and our new one has two different conditions,

@@ -9,6 +9,7 @@ pub struct LocalStats {
     pub num_inputs: Counter,
     pub num_hangs: Counter,
     pub num_crashes: Counter,
+    pub cmp_cov: u32,
 
     pub track_time: TimeDuration,
     pub start_time: TimeIns,
@@ -28,6 +29,7 @@ impl LocalStats {
         self.num_inputs = Default::default();
         self.num_hangs = Default::default();
         self.num_crashes = Default::default();
+        self.cmp_cov = Default::default();
 
         self.start_time = Default::default();
         self.track_time = Default::default();

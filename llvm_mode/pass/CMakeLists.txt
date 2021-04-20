@@ -54,3 +54,12 @@ add_library(DFSanPass MODULE DFSanPass.cc)
 target_link_libraries(DFSanPass LLVMPassConfig)
 install (TARGETS DFSanPass DESTINATION ${ANGORA_PASS_DIR})
 
+add_library(compare-transform-pass MODULE compare-transform-pass.so.cc afl-llvm-common.cc)
+target_link_libraries(compare-transform-pass LLVMPassConfig)
+target_include_directories(compare-transform-pass PRIVATE  .)
+install (TARGETS compare-transform-pass DESTINATION ${ANGORA_PASS_DIR})
+
+add_library(split-switches-pass MODULE split-switches-pass.so.cc afl-llvm-common.cc)
+target_link_libraries(split-switches-pass LLVMPassConfig)
+target_include_directories(split-switches-pass PRIVATE  .)
+install (TARGETS split-switches-pass DESTINATION ${ANGORA_PASS_DIR})

@@ -5,7 +5,7 @@ use crate::{
 use rand::prelude::*;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
-    Arc, RwLock,
+    Arc, RwLock, Mutex,
 };
 
 pub fn fuzz_loop(
@@ -14,6 +14,7 @@ pub fn fuzz_loop(
     depot: Arc<Depot>,
     global_branches: Arc<GlobalBranches>,
     global_stats: Arc<RwLock<stats::ChartStats>>,
+    branch_cov_list : Arc<Mutex<Box<[u32]>>>,
 ) {
     let search_method = cmd_opt.search_method;
     let mut executor = Executor::new(
@@ -21,6 +22,7 @@ pub fn fuzz_loop(
         global_branches,
         depot.clone(),
         global_stats.clone(),
+        branch_cov_list,
     );
 
     while running.load(Ordering::Relaxed) {

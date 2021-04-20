@@ -98,6 +98,27 @@ static u8 check_if_assembler(u32 argc, const char **argv) {
 }
 
 static void add_angora_pass() {
+  cc_params[cc_par_cnt++] = "-fno-builtin-strcmp";
+  cc_params[cc_par_cnt++] = "-fno-builtin-strncmp";
+  cc_params[cc_par_cnt++] = "-fno-builtin-strcasecmp";
+  cc_params[cc_par_cnt++] = "-fno-builtin-strncasecmp";
+  cc_params[cc_par_cnt++] = "-fno-builtin-memcmp";
+  cc_params[cc_par_cnt++] = "-fno-builtin-bcmp";
+  cc_params[cc_par_cnt++] = "-fno-builtin-strstr";
+  cc_params[cc_par_cnt++] = "-fno-builtin-strcasestr";
+
+  cc_params[cc_par_cnt++] = "-Xclang";
+  cc_params[cc_par_cnt++] = "-load";
+  cc_params[cc_par_cnt++] = "-Xclang";
+  cc_params[cc_par_cnt++] =
+      alloc_printf("%s/pass/libcompare-transform-pass.so", obj_path);
+
+  cc_params[cc_par_cnt++] = "-Xclang";
+  cc_params[cc_par_cnt++] = "-load";
+  cc_params[cc_par_cnt++] = "-Xclang";
+  cc_params[cc_par_cnt++] =
+      alloc_printf("%s/pass/libsplit-switches-pass.so", obj_path);
+
   if (clang_type != CLANG_DFSAN_TYPE) {
     cc_params[cc_par_cnt++] = "-Xclang";
     cc_params[cc_par_cnt++] = "-load";
